@@ -291,7 +291,7 @@ class Sticky extends Component {
 
     componentDidUpdate(prevProps, prevState) {
         if (prevState.status !== this.state.status && this.props.onStateChange) {
-            this.props.onStateChange({status: this.state.status});
+            this.props.onStateChange(this.state);
         }
         // if the props for enabling are toggled, then trigger the update or reset depending on the current props
         if (prevProps.enabled !== this.props.enabled) {
