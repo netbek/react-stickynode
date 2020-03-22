@@ -32,9 +32,9 @@ var _classnames = require('classnames');
 
 var _classnames2 = _interopRequireDefault(_classnames);
 
-var _reactAddonsShallowCompare = require('react-addons-shallow-compare');
+var _shallowequal = require('shallowequal');
 
-var _reactAddonsShallowCompare2 = _interopRequireDefault(_reactAddonsShallowCompare);
+var _shallowequal2 = _interopRequireDefault(_shallowequal);
 
 // constants
 var STATUS_ORIGINAL = 0; // The default status, locating at the original position.
@@ -170,12 +170,8 @@ var Sticky = (function (_Component) {
         value: function updateInitialDimension(options) {
             options = options || {};
 
-            var _refs = this.refs;
-            var outer = _refs.outer;
-            var inner = _refs.inner;
-
-            var outerRect = outer.getBoundingClientRect();
-            var innerRect = inner.getBoundingClientRect();
+            var outerRect = this.outerElement.getBoundingClientRect();
+            var innerRect = this.innerElement.getBoundingClientRect();
 
             var width = outerRect.width || outerRect.right - outerRect.left;
             var height = innerRect.height || innerRect.bottom - innerRect.top;;
@@ -379,7 +375,7 @@ var Sticky = (function (_Component) {
                 winHeight = win.innerHeight || docEl.clientHeight;
                 M = window.Modernizr;
                 // No Sticky on lower-end browser when no Modernizr
-                if (M) {
+                if (M && M.prefixed) {
                     canEnableTransforms = M.csstransforms3d;
                     TRANSFORM_PROP = M.prefixed('transform');
                 }
@@ -401,7 +397,7 @@ var Sticky = (function (_Component) {
         value: function translate(style, pos) {
             var enableTransforms = canEnableTransforms && this.props.enableTransforms;
             if (enableTransforms && this.state.activated) {
-                style[TRANSFORM_PROP] = 'translate3d(0,' + pos + 'px,0)';
+                style[TRANSFORM_PROP] = 'translate3d(0,' + Math.round(pos) + 'px,0)';
             } else {
                 style.top = pos + 'px';
             }
@@ -409,12 +405,13 @@ var Sticky = (function (_Component) {
     }, {
         key: 'shouldComponentUpdate',
         value: function shouldComponentUpdate(nextProps, nextState) {
-            return !this.props.shouldFreeze() && (0, _reactAddonsShallowCompare2['default'])(this, nextProps, nextState);
+            return !this.props.shouldFreeze() && !((0, _shallowequal2['default'])(this.props, nextProps) && (0, _shallowequal2['default'])(this.state, nextState));
         }
     }, {
         key: 'render',
         value: function render() {
-            var _classNames;
+            var _classNames,
+                _this2 = this;
 
             // TODO, "overflow: auto" prevents collapse, need a good way to get children height
             var innerStyle = {
@@ -433,13 +430,19 @@ var Sticky = (function (_Component) {
 
             var outerClasses = (0, _classnames2['default'])('sticky-outer-wrapper', this.props.className, (_classNames = {}, _defineProperty(_classNames, this.props.activeClass, this.state.status === STATUS_FIXED), _defineProperty(_classNames, this.props.releasedClass, this.state.status === STATUS_RELEASED), _classNames));
 
+            var children = this.props.children;
+
             return _react2['default'].createElement(
                 'div',
-                { ref: 'outer', className: outerClasses, style: outerStyle },
+                { ref: function (outer) {
+                        _this2.outerElement = outer;
+                    }, className: outerClasses, style: outerStyle },
                 _react2['default'].createElement(
                     'div',
-                    { ref: 'inner', className: 'sticky-inner-wrapper', style: innerStyle },
-                    this.props.children
+                    { ref: function (inner) {
+                            _this2.innerElement = inner;
+                        }, className: 'sticky-inner-wrapper', style: innerStyle },
+                    typeof children === 'function' ? children({ status: this.state.status }) : children
                 )
             );
         }
