@@ -11,7 +11,7 @@ import PropTypes from 'prop-types'
 
 import {subscribe} from 'subscribe-ui-event';
 import classNames from 'classnames';
-import shallowCompare from 'react-addons-shallow-compare';
+import shallowEqual from 'shallowequal';
 
 // constants
 const STATUS_ORIGINAL = 0; // The default status, locating at the original position.
@@ -133,10 +133,8 @@ class Sticky extends Component {
     updateInitialDimension (options) {
         options = options || {}
 
-        var {outer, inner} = this.refs;
-
-        var outerRect = outer.getBoundingClientRect();
-        var innerRect = inner.getBoundingClientRect();
+        var outerRect = this.outerElement.getBoundingClientRect();
+        var innerRect = this.innerElement.getBoundingClientRect();
 
         var width = outerRect.width || outerRect.right - outerRect.left;
         var height = innerRect.height || innerRect.bottom - innerRect.top;;
@@ -326,7 +324,7 @@ class Sticky extends Component {
             winHeight = win.innerHeight || docEl.clientHeight;
             M = window.Modernizr;
             // No Sticky on lower-end browser when no Modernizr
-            if (M) {
+            if (M && M.prefixed) {
                 canEnableTransforms = M.csstransforms3d;
                 TRANSFORM_PROP = M.prefixed('transform');
             }
@@ -351,14 +349,14 @@ class Sticky extends Component {
     translate (style, pos) {
         var enableTransforms = canEnableTransforms && this.props.enableTransforms
         if (enableTransforms && this.state.activated) {
-            style[TRANSFORM_PROP] = 'translate3d(0,' + pos + 'px,0)';
+            style[TRANSFORM_PROP] = 'translate3d(0,' + Math.round(pos) + 'px,0)';
         } else {
             style.top = pos + 'px';
         }
     }
 
     shouldComponentUpdate (nextProps, nextState) {
-        return !this.props.shouldFreeze() && shallowCompare(this, nextProps, nextState);
+        return !this.props.shouldFreeze() && !(shallowEqual(this.props, nextProps) && shallowEqual(this.state, nextState));
     }
 
     render () {
@@ -382,10 +380,12 @@ class Sticky extends Component {
             [this.props.releasedClass]: this.state.status === STATUS_RELEASED
         })
 
+        var children = this.props.children;
+
         return (
-            <div ref='outer' className={outerClasses} style={outerStyle}>
-                <div ref='inner' className='sticky-inner-wrapper' style={innerStyle}>
-                    {this.props.children}
+            <div ref={(outer) => { this.outerElement = outer; }} className={outerClasses} style={outerStyle}>
+                <div ref={(inner) => { this.innerElement = inner; }} className='sticky-inner-wrapper' style={innerStyle}>
+                    {typeof children === 'function' ? children({ status: this.state.status }) : children}
                 </div>
             </div>
         );
